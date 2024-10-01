@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, g, render_template, flash, session, redirect, url_for, request, abort
+from flask import Flask, g, render_template, flash, session, redirect, url_for, request, abort, jsonify
 
 # define the root directory of the Flask app
 flaskr_root = Path(__file__).resolve().parent.parent
@@ -96,6 +96,20 @@ def add_entry():
     db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('index'))
+
+
+@app.route('/delete/<post_id>', methods=['GET'])
+def delete_entry(post_id):
+    """Delete post from database"""
+    result = {'status': 0, 'message': 'Error'}
+    try:
+        db = get_db()
+        db.execute('delete from entries where id=' + post_id)
+        db.commit()
+        result = {'status': 1, 'message': "Post Deleted"}
+    except Exception as e:
+        result = {'status': 0, 'message': repr(e)}
+    return jsonify(result)
 
 
 if __name__ == "__main__":
