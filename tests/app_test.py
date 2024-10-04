@@ -87,6 +87,7 @@ def test_delete_message(client):
     data = json.loads(rv.data)
     assert data["status"] == 1
 
+
 def test_search(client):
     # Ensure the database is empty initially
     test_empty_db(client)
@@ -123,3 +124,31 @@ def test_search(client):
     # Test empty search query (should just return the search page without any filtering)
     rv = client.get("/search/")
     assert b"Search" in rv.data
+
+
+def test_delete_without_login(client):
+    """Ensure that posts cannot be deleted without login."""
+    # Try to delete post without logging in
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    assert data["message"] == "Please log in."
+    assert rv.status_code == 401  # Unauthorized access
+
+
+def test_delete_with_login(client):
+    """Ensure that logged-in users can delete posts."""
+    # Log in and add a post first
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post(
+        "/add",
+        data=dict(title="Post to Delete", text="This post will be deleted"),
+        follow_redirects=True,
+    )
+
+    # Attempt to delete the post
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 1
+    assert data["message"] == "Post Deleted"
+    assert rv.status_code == 200  # Success
