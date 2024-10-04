@@ -86,3 +86,40 @@ def test_delete_message(client):
     rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+def test_search(client):
+    # Ensure the database is empty initially
+    test_empty_db(client)
+
+    # Log in first to add some posts
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+
+    # Add a few test entries
+    client.post(
+        "/add",
+        data=dict(title="First Post", text="This is the first test post."),
+        follow_redirects=True,
+    )
+    client.post(
+        "/add",
+        data=dict(title="Second Post", text="Another test post for search."),
+        follow_redirects=True,
+    )
+
+    # Test searching for an existing post title
+    rv = client.get("/search/", query_string={'query': 'First'})
+    assert b"First Post" in rv.data
+    assert b"This is the first test post." in rv.data
+
+    # Test searching for text within a post
+    rv = client.get("/search/", query_string={'query': 'Another'})
+    assert b"Second Post" in rv.data
+    assert b"Another test post for search." in rv.data
+
+    # Test searching for a post that does not exist
+    rv = client.get("/search/", query_string={'query': 'Nonexistent'})
+    assert b"" in rv.data
+
+    # Test empty search query (should just return the search page without any filtering)
+    rv = client.get("/search/")
+    assert b"Search" in rv.data
